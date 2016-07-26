@@ -43,7 +43,7 @@ SerialPort.list(function (err, ports) {
     console.log(port.comName);
     if (port.comName.toLowerCase().indexOf('usb') !== -1) {
       var port = new SerialPort(port.comName, {
-        baudRate: 9600,
+        baudRate: 115200,
         parser: SerialPort.parsers.readline('\n')
       });
 
@@ -119,15 +119,17 @@ function portData (data) {
 };
 
 function getNeighbors(i, radius) {
-  var p1 = LIGHT_COORS[i];
   var neighbors = [];
-  for (var i = 0; i < LIGHT_COORS.length; i++) {
-    var p2 = LIGHT_COORS[i];
-    var a = p1[0] - p2[0];
-    var b = p1[1] - p2[1];
-    var v = Math.sqrt(a*a + b*b);
-    if (v !== 0 && v < radius) {
-      neighbors.push(i);
+  if (i < LIGHT_COORS.length) {
+    var p1 = LIGHT_COORS[i];
+    for (var i = 0; i < LIGHT_COORS.length; i++) {
+      var p2 = LIGHT_COORS[i];
+      var a = p1[0] - p2[0];
+      var b = p1[1] - p2[1];
+      var v = Math.sqrt(a*a + b*b);
+      if (v !== 0 && v < radius) {
+        neighbors.push(i);
+      }
     }
   }
   return neighbors;
