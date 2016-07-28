@@ -26,7 +26,8 @@ var STATES = {
   BLUE: 3
 };
 var state = STATES.AMBIENT;
-
+var LIGHT_COORS = [[0.55,0.00],[0.36,0.14],[0.55,0.14],[0.73,0.14],[0.45,0.21],[0.64,0.21],[0.36,0.29],[0.55,0.29],[0.73,0.29],[0.27,0.36],[0.45,0.36],[0.64,0.36],[0.82,0.36],[0.18,0.43],[0.36,0.43],[0.73,0.43],[0.91,0.43],[0.00,0.50],[0.09,0.50],[0.27,0.50],[0.82,0.50],[1.00,0.50],[0.18,0.57],[0.36,0.57],[0.73,0.57],[0.91,0.57],[0.27,0.64],[0.45,0.64],[0.64,0.64],[0.82,0.64],[0.36,0.71],[0.55,0.71],[0.73,0.71],[0.45,0.79],[0.64,0.79],[0.36,0.86],[0.55,0.86],[0.73,0.86],[0.55,1.00]];
+var livePorts = [];
 
 
 ////////////////////////////////////////////////////////////////////////////////// 
@@ -40,42 +41,61 @@ var state = STATES.AMBIENT;
 SerialPort.list(function (err, ports) {
   ports.forEach(function(port) {
     console.log(port.comName);
-    
-    // if (port.comName.indexOf('usb') > -1) {
-      // onPortReady(port.comName);
-    // }
+    if (port.comName.toLowerCase().indexOf('usb') !== -1) {
+      var port = new SerialPort(port.comName, {
+        baudRate: 115200,
+        parser: SerialPort.parsers.readline('\n')
+      });
+
+      port.on('open', portOpen);
+      port.on('error', portError);
+      port.on('data', portData);
+
+      livePorts.push(port);
+    }
   });
 });
 
 
 // var port = new SerialPort("/dev/cu.wchusbserial1420", {
-var port = new SerialPort("/dev/cu.usbmodem1411", {
-  baudRate: 9600,
-  parser: SerialPort.parsers.readline('\n')
-});
+
 
 // set the index on the board
-port.on('open', function() {
+function portOpen() {
 
   var initMessage = "INIT: " + index;
 
-  port.write(initMessage, function(err) {
-    if (err) {
-      return console.log('Error on write: ', err.message);
-    }
-    console.log('message written');
-  });
+  writePorts(initMessage);
 
   index++;
 
-});
+};
+
+function writePorts(message, i) {
+  if (!i) {
+    i = 0;
+  }
+  if (i < livePorts.length) {
+    livePorts[i].write(message, function(err, results) {
+      if (err) {
+        return console.log('Error on write: ', err.message);
+      }
+      console.log('message written to port ' + i);
+      if (results) {
+        console.log('Results: ', results);
+      }
+      i++;
+      writePorts(message, i);
+    });
+  }
+}
 
 // open errors will be emitted as an error event
-port.on('error', function(err) {
+function portError(err) {
   console.log('Error: ', err.message);
-});
+};
 
-port.on('data', function (data) {
+function portData (data) {
   console.log('Data: ' + data);
 
   if (data.indexOf('DANGR: ') > -1) {
@@ -83,31 +103,36 @@ port.on('data', function (data) {
     var index = parseInt(array[0]);
     var intensity = array[1];
 
-    var neighbors = getNeighbors(index);
-    var message = 'SPRED: ';
-    for (var i=0; i < neighbors.length; i++) {
-      message += pad(neighbors[i], 2) + ","; 
-    }
-    message += ":" + pad(intensity, 3);
+    var neighbors = getNeighbors(index, intensity / 100 * .34);
+    if (neighbors.length) {
+      var message = 'SPRED: ';
+      for (var i=0; i < neighbors.length; i++) {
+        message += pad(neighbors[i], 2) + ",";
+      }
 
-    // console.log(message);
-    dispatch(message);
-    
+      // console.log(message);
+      // console.log(message);
+      dispatch(message.substring(0, message.length - 1));
+    }
   }
 
-});
+};
 
-function getNeighbors(i) {
-  
-  var n1 = i-1;
-  if (n1 < 0) n1 = 7;
-  
-  var n2 = i+1;
-  if (n2 > 7) n2 = 0;
-
-  // console.log("neighbors of ", i, " are ", n1, " and ", n2);
-
-  return [n1, n2];
+function getNeighbors(i, radius) {
+  var neighbors = [];
+  if (i < LIGHT_COORS.length) {
+    var p1 = LIGHT_COORS[i];
+    for (var i = 0; i < LIGHT_COORS.length; i++) {
+      var p2 = LIGHT_COORS[i];
+      var a = p1[0] - p2[0];
+      var b = p1[1] - p2[1];
+      var v = Math.sqrt(a*a + b*b);
+      if (v !== 0 && v < radius) {
+        neighbors.push(i);
+      }
+    }
+  }
+  return neighbors;
 }
 
 
@@ -225,10 +250,12 @@ function dispatch(message) {
   //     });
   // }
 
-  port.write(message, function(err, results) {
-      if (err) console.log('err ' + err);
-      if (results) console.log('results ' + results);
-  });
+  writePorts(message);
+
+  // port.write(message, function(err, results) {
+  //     if (err) console.log('err ' + err);
+  //     if (results) console.log('results ' + results);
+  // });
 
   // // Sending the terminate character
   // port.write(new Buffer('\n', 'ascii'), function(err, results) {
