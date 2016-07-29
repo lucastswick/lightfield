@@ -23,7 +23,10 @@ var STATES = {
   AMBIENT: 0,
   RED: 1, 
   GREEN: 2, 
-  BLUE: 3
+  BLUE: 3,
+  HILIGHT: 4,
+  PULSE: 5,
+  WAVE: 6
 };
 var state = STATES.AMBIENT;
 var LIGHT_COORS = [[0.55,0.00],[0.36,0.14],[0.55,0.14],[0.73,0.14],[0.45,0.21],[0.64,0.21],[0.36,0.29],[0.55,0.29],[0.73,0.29],[0.27,0.36],[0.45,0.36],[0.64,0.36],[0.82,0.36],[0.18,0.43],[0.36,0.43],[0.73,0.43],[0.91,0.43],[0.00,0.50],[0.09,0.50],[0.27,0.50],[0.82,0.50],[1.00,0.50],[0.18,0.57],[0.36,0.57],[0.73,0.57],[0.91,0.57],[0.27,0.64],[0.45,0.64],[0.64,0.64],[0.82,0.64],[0.36,0.71],[0.55,0.71],[0.73,0.71],[0.45,0.79],[0.64,0.79],[0.36,0.86],[0.55,0.86],[0.73,0.86],[0.55,1.00]];
@@ -179,6 +182,15 @@ process.stdin.on('keypress', function (ch, key) {
       case "b":
         setState(STATES.BLUE);
         break;
+      case "h":
+        setState(STATES.HILIGHT);
+        break;
+      case "p":
+        setState(STATES.PULSE);
+        break;
+      case "w":
+        setState(STATES.WAVE);
+        break;
       case "s":
         var message = "SPRED: " + state + '!';
         dispatch(message);
@@ -230,6 +242,9 @@ function setState(theState) {
     case STATES.RED:
     case STATES.GREEN:
     case STATES.BLUE:
+    case STATES.HILIGHT:
+    case STATES.WAVE:
+    case STATES.PULSE:
       state = theState;
       // var message = state + '\r';
       // var message = "STATE: " + state + '\r';
